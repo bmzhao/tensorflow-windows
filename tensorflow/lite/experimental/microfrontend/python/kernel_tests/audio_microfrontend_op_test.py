@@ -35,6 +35,9 @@ SMOOTHING_BITS = 10
 class AudioFeatureGenerationTest(tf.test.TestCase):
 
   def setUp(self):
+    import os
+    print('PID of python process is:', os.getpid())
+    print('Now starting the python test')
     super(AudioFeatureGenerationTest, self).setUp()
     ops.disable_eager_execution()
 

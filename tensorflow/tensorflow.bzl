@@ -1706,7 +1706,11 @@ def tf_custom_op_library_additional_deps():
         "@com_google_protobuf//:protobuf_headers",
         clean_dep("//third_party/eigen3"),
         clean_dep("//tensorflow/core:framework_headers_lib"),
-    ] + if_windows([clean_dep("//tensorflow/python:pywrap_tensorflow_import_lib")])
+    ] + if_windows(
+        # [clean_dep("//tensorflow/python:pywrap_tensorflow_import_lib")]
+        # [clean_dep("//tensorflow:tensorflow_framework_import_lib")]
+        [clean_dep("//tensorflow:tensorflow_framework_windows_dep")]
+    )
 
 # A list of targets that contains the implemenation of
 # tf_custom_op_library_additional_deps. It's used to generate a DEF file for
@@ -1775,7 +1779,7 @@ check_deps = rule(
             allow_files = True,
         ),
     },
-)
+) 
 
 def tf_custom_op_library(name, srcs = [], gpu_srcs = [], deps = [], linkopts = [], copts = [], **kwargs):
     """Helper to build a dynamic library (.so) from the sources containing implementations of custom ops and kernels.
@@ -1816,11 +1820,23 @@ def tf_custom_op_library(name, srcs = [], gpu_srcs = [], deps = [], linkopts = [
         ],
         deps = deps + if_cuda_is_configured_compat(cuda_deps) + if_rocm_is_configured(rocm_deps),
     )
+
+    native.genrule(
+        name = name + "_tensorflow_framework_dll_generate",
+        srcs = ["//tensorflow:libtensorflow_framework.so"],
+        outs = ["python/ops/tensorflow_framework.dll"],
+        cmd = select({
+            "//tensorflow:windows": "cp -f $< $@",
+            "//conditions:default": "touch $@",  # Just a placeholder for Unix platforms
+        }),
+        visibility = ["//visibility:private"],
+    )
+
     tf_cc_shared_object(
         name = name,
         srcs = srcs,
         deps = deps + if_cuda_is_configured_compat(cuda_deps) + if_rocm_is_configured(rocm_deps),
-        data = if_static([name + "_check_deps"]),
+        data = [name + "_tensorflow_framework_dll_generate"] + if_static([name + "_check_deps"]),
         copts = copts + tf_copts(is_external = True),
         features = ["windows_export_all_symbols"],
         linkopts = linkopts + select({

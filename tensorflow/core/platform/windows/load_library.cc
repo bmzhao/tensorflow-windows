@@ -25,6 +25,8 @@ limitations under the License.
 #undef LoadLibrary
 #undef ERROR
 
+#include <iostream>
+
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/windows/wide_char.h"
 
@@ -43,6 +45,7 @@ Status LoadLibrary(const char* library_filename, void** handle) {
   HMODULE hModule =
       LoadLibraryExW(ws_file_name.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
   if (!hModule) {
+    std::cerr << "While attempting to load " << ws_file_name.c_str() << " error code: " << GetLastError() << std::endl;
     return errors::NotFound(file_name + " not found");
   }
   *handle = hModule;
